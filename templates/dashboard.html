@@ -4,15 +4,48 @@
 <body>
     <h1>Welcome, {{ current_user.name }}</h1>
     <p>Role: {{ current_user.role }}</p>
+
     {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-            <p style="color:green;">{{ message }}</p>
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color:green;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <p>
+        <a href="/upload">Upload a track</a> |
+        <a href="/leak-analysis">Leak Analysis</a> |
+        <a href="/logout">Log out</a>
+    </p>
+
+    <h2>My tracks</h2>
+    {% if my_tracks %}
+        <ul>
+        {% for track in my_tracks %}
+            <li>{{ track.title }} (v{{ track.version_number }})
+                - <a href="/track/{{ track.id }}/distribute">Distribute</a></li>
         {% endfor %}
+        </ul>
+    {% else %}
+        <p>You haven't uploaded any tracks yet.</p>
     {% endif %}
-{% endwith %}
-    <a href="/upload">Upload a track</a><br>
-    <a href="/leak-analysis">Leak Analysis</a><br>
-    <a href="/logout">Log out</a>
+
+    <h2>Shared with me</h2>
+    {% if shared %}
+        {% for dist, track in shared %}
+            <div style="margin-bottom:16px;">
+                <strong>{{ track.title }}</strong><br>
+                {% if dist.can_stream %}
+                    <audio controls src="/distribution/{{ dist.id }}/stream"></audio><br>
+                {% endif %}
+                {% if dist.can_download %}
+                    <a href="/distribution/{{ dist.id }}/download">Download</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Nothing has been shared with you yet.</p>
+    {% endif %}
 </body>
 </html>

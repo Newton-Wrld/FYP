@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_from_directory
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Project, Track, Distribution, Watermark, AccessLog, LeakAnalysis
 from watermark import generate_watermarked_copy
 import uuid
+from datetime import datetime
 
 app = Flask(__name__)
 from flask_wtf.csrf import CSRFProtect
@@ -77,7 +78,57 @@ def login():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html")
+    my_tracks = Track.query.filter_by(owner_id=current_user.id).all()
+    shared = (
+        db.session.query(Distribution, Track)
+        .join(Track, Distribution.track_id == Track.id)
+        .filter(Distribution.recipient_id == current_user.id,
+                Distribution.status == "active")
+        .all()
+    )
+    return render_template("dashboard.html", my_tracks=my_tracks, shared=shared)
+
+def get_authorized_distribution(dist_id):
+    """Return the distribution only if it belongs to the current user and is still valid."""
+    dist = Distribution.query.get_or_404(dist_id)
+
+    # Someone else's distribution: pretend it doesn't exist
+    if dist.recipient_id != current_user.id:
+        db.session.add(AccessLog(user_id=current_user.id, track_id=dist.track_id,
+                                 action="ACCESS_DENIED", ip_address=request.remote_addr))
+        db.session.commit()
+        abort(404)
+
+    if dist.status != "active" or (dist.expires_at and dist.expires_at < datetime.utcnow()):
+        abort(403)
+
+    return dist
+
+
+def serve_distributed_copy(dist, action, as_attachment):
+    directory = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], "distributed")
+    db.session.add(AccessLog(user_id=current_user.id, track_id=dist.track_id,
+                             action=action, ip_address=request.remote_addr))
+    db.session.commit()
+    return send_from_directory(directory, f"dist_{dist.id}.wav", as_attachment=as_attachment)
+
+
+@app.route("/distribution/<int:dist_id>/stream")
+@login_required
+def stream(dist_id):
+    dist = get_authorized_distribution(dist_id)
+    if not dist.can_stream:
+        abort(403)
+    return serve_distributed_copy(dist, "STREAM", as_attachment=False)
+
+
+@app.route("/distribution/<int:dist_id>/download")
+@login_required
+def download(dist_id):
+    dist = get_authorized_distribution(dist_id)
+    if not dist.can_download:
+        abort(403)
+    return serve_distributed_copy(dist, "DOWNLOAD", as_attachment=True)
 
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
