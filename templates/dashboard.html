@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dashboard</title></head>
+<body>
+    <h1>Welcome, {{ current_user.name }}</h1>
+    <p>Role: {{ current_user.role }}</p>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+            <p style="color:green;">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+    <a href="/upload">Upload a track</a><br>
+    <a href="/leak-analysis">Leak Analysis</a><br>
+    <a href="/logout">Log out</a>
+</body>
+</html>

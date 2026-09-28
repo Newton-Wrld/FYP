@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Leak Analysis</title></head>
+<body>
+    <h1>Leak Analysis</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color:red;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="suspect_file" accept=".wav,.mp3" required><br><br>
+        <button type="submit">Analyze</button>
+    </form>
+
+    {% if result %}
+        <hr>
+        <h2>{{ result.status }}</h2>
+        {% if result.track_id %}
+            <p>Track ID: {{ result.track_id }}</p>
+            <p>Distribution ID: {{ result.distribution_id }}</p>
+            <p>Recipient: {{ result.recipient_name }} ({{ result.recipient_email }})</p>
+            <p>Distributed on: {{ result.distributed_on }}</p>
+        {% endif %}
+    {% endif %}
+
+    <p><a href="/dashboard">Back to dashboard</a></p>
+</body>
+</html>

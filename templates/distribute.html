@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Distribute Track</title></head>
+<body>
+    <h1>Distribute: {{ track.title }}</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color:red;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="email" name="recipient_email" placeholder="Recipient's email" required><br><br>
+        <label><input type="checkbox" name="can_stream" checked> Allow streaming</label><br>
+        <label><input type="checkbox" name="can_download"> Allow download</label><br><br>
+        <button type="submit">Distribute</button>
+    </form>
+    <p><a href="/dashboard">Back to dashboard</a></p>
+</body>
+</html>
